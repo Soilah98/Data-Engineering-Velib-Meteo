@@ -1,0 +1,13 @@
+name: velib_demand
+version: 1.0.0
+
+profile: velib_demand
+
+models:
+  velib_demand:
+    staging:
+      +materialized: view
+      + schema: sliver
+    intermediate:
+      + materialized: table
+      + schema: gold
