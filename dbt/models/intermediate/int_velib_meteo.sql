@@ -32,4 +32,3 @@ INNER JOIN LATERAL (
     LIMIT 1
 ) m ON true 
 WHERE v.is_installed AND v.is_renting
-
