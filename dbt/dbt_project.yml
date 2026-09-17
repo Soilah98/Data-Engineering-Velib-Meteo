@@ -7,7 +7,10 @@ models:
   velib_demand:
     staging:
       +materialized: view
-      + schema: sliver
+      + schema: silver
     intermediate:
+      + materialized: view
+      + schema: silver
+    marts:
       + materialized: table
       + schema: gold
