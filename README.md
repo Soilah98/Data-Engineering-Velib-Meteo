@@ -40,7 +40,7 @@ Ce projet ingère les données en temps réel des stations Vélib' (Open Data Pa
 ```
 
 ### Orchestration reussie 
-[Airflow DAG](docs/images/airflow_dag.png)
+![Airflow DAG](docs/images/airflow_dag.png)
 
 ## 🚀 Lancer le projet en local
 
