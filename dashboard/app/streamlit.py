@@ -1012,6 +1012,95 @@ else:
     """)
 
 
+
+# ─── Section Analyse météo/occupation ────────────────────────────────────────
+
+st.html('<div style="height:4px"></div>')
+st.html('<div class="section-title">Analyse : influence de la météo sur l\'occupation</div>')
+
+if city_trend_err:
+    st.html(f'<div class="error-box">⚠️ {city_trend_err}</div>')
+elif not city_trend or len(df_city) < 5:
+    st.html("""
+    <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        Pas encore assez de données pour une analyse statistique fiable —
+        revenez avec un historique plus long (7 derniers jours ou 30 derniers jours).
+    </div>
+    """)
+else:
+    df_corr = df_city.dropna(subset=["avg_occupancy", "temperature_2m"]).copy()
+
+    if df_corr["temperature_2m"].std() == 0 or df_corr["avg_occupancy"].std() == 0:
+        st.html("""
+        <div class="empty-state">
+            <div class="empty-icon">📊</div>
+            Pas assez de variation de température sur cette période pour calculer une corrélation.
+        </div>
+        """)
+    else:
+        correlation = df_corr["temperature_2m"].corr(df_corr["avg_occupancy"])
+        df_corr["heure"] = df_corr["ts"].dt.hour
+
+        col_metric1, col_metric2 = st.columns(2)
+        with col_metric1:
+            st.metric("Corrélation température ↔ occupation", f"{correlation:.2f}")
+        with col_metric2:
+            interpretation = (
+                "forte" if abs(correlation) >= 0.5
+                else "modérée" if abs(correlation) >= 0.3
+                else "faible"
+            )
+            st.metric("Force de la relation", interpretation)
+
+        # if not df_corr["precipitation"].fillna(0).gt(0).any():
+        #     st.html("""
+        #     <div class="info-box">
+        #         ℹ️ Aucune précipitation enregistrée sur cette période —
+        #         l'effet de la pluie n'a pas encore pu être mesuré.
+        #     </div>
+        #     """)
+        if not df_corr["precipitation"].fillna(0).gt(0).any():
+           st.info("Aucune précipitation enregistrée sur cette période — l'effet de la pluie n'a pas encore pu être mesuré.")
+
+        fig_corr = px.scatter(
+            df_corr,
+            x="temperature_2m",
+            y="avg_occupancy",
+            color="heure",
+            color_continuous_scale="Viridis",
+            labels={
+                "temperature_2m": "Température (°C)",
+                "avg_occupancy": "Occupation moy. Paris (%)",
+                "heure": "Heure de la journée",
+            },
+        )
+
+        # Droite de régression simple (moindres carrés), sans dépendance supplémentaire
+        if len(df_corr) > 2:
+            coeffs = np.polyfit(df_corr["temperature_2m"], df_corr["avg_occupancy"], 1)
+            x_line = np.linspace(df_corr["temperature_2m"].min(), df_corr["temperature_2m"].max(), 50)
+            y_line = np.polyval(coeffs, x_line)
+            fig_corr.add_trace(go.Scatter(
+                x=x_line, y=y_line, mode="lines",
+                line=dict(color="#4f46e5", width=2, dash="dash"),
+                name="Tendance linéaire",
+            ))
+
+        fig_corr.update_layout(
+            height=420,
+            margin=dict(l=10, r=10, t=10, b=10),
+            plot_bgcolor="white",
+        )
+        st.plotly_chart(fig_corr, use_container_width=True)
+
+        st.caption(
+            f"Basé sur {len(df_corr)} points horaires, agrégés sur toutes les stations actives. "
+            "La couleur indique l'heure de la journée — utile pour repérer si la relation "
+            "reflète un vrai effet météo ou surtout le cycle horaire (heures de pointe)."
+        )
+        
+
 # ─── Section Historique par station ──────────────────────────────────────────
 
 st.html('<div style="height:4px"></div>')
